@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>买房 vs 租房 计算器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --text: #1a1a1a;
+    --text2: #6b6a66;
+    --text3: #999894;
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-border: #C0DD97;
+    --green-dark: #27500A;
+    --red: #A32D2D; --red-bg: #FCEBEB; --red-border: #F7C1C1;
+    --red-dark: #791F1F;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-border: #B5D4F4;
+    --radius: 12px; --radius-sm: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 24px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+
+  .stl {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+
+  .field { margin-bottom: 10px; }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 4px;
+  }
+  .field label span {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .toggle-btn {
+    flex: 1; padding: 6px 0; font-size: 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    cursor: pointer; background: transparent;
+    color: var(--text2); transition: all .15s;
+  }
+  .toggle-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .result-box {
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .result-box .rl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .result-box .rv { font-size: 28px; font-weight: 700; margin-bottom: 2px; }
+  .result-box .rs { font-size: 11px; }
+
+  .sr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+  }
+  .sr:last-child { border-bottom: none; }
+  .sr .lbl { color: var(--text2); }
+  .sr .val { font-weight: 500; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 6px 0; }
+  .sr.tot .lbl, .sr.tot .val { font-weight: 700; color: var(--text); }
+
+  .mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mini {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .mini .ml { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .mini .mv { font-size: 15px; font-weight: 600; }
+
+  .cf-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .cf-track { flex: 1; height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+  .cf-fill { height: 100%; border-radius: 3px; transition: width .2s, background .2s; }
+
+  .sep { border: none; border-top: 1.5px solid var(--border); margin: 6px 0 14px; }
+
+  .compare-banner {
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    border: 0.5px solid var(--border);
+    margin-top: 4px;
+  }
+  .cb-side { text-align: center; }
+  .cb-side .cl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .cb-side .cv { font-size: 22px; font-weight: 700; }
+  .cb-side .cs { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .cb-mid { text-align: center; }
+  .cb-mid .cml { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+  .cb-mid .cmv { font-size: 18px; font-weight: 700; }
+  .cb-mid .cmw { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+  .neg { color: var(--red); }
+  .pos { color: var(--green); }
+  .note { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+  footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+</style>
+</head>
+<body>
+
+<div style="max-width:1100px;margin:0 auto;">
+  <h1>买房 vs 租房 计算器</h1>
+  <p class="subtitle">调整左侧参数，右侧实时显示期末净盈亏对比</p>
+
+  <div class="layout">
+
+    <!-- ═══ LEFT ═══ -->
+    <div>
+      <div class="card">
+        <p class="stl">房产参数</p>
+        <div class="field"><label>买入价格 <span id="lbl-price">$500,000</span></label>
+          <input type="range" min="300000" max="900000" step="5000" value="500000" oninput="s('price',this.value)"></div>
+        <div class="field"><label>首付比例 <span id="lbl-down">20%</span></label>
+          <input type="range" min="5" max="50" step="1" value="20" oninput="s('down',this.value)"></div>
+        <div class="field"><label>贷款利率 <span id="lbl-rate">4.5%</span></label>
+          <input type="range" min="2.0" max="8.0" step="0.1" value="4.5" oninput="s('rate',this.value)"></div>
+        <div class="field"><label>摊还年限 <span id="lbl-amort">25年</span></label>
+          <input type="range" min="15" max="30" step="5" value="25" oninput="s('amort',this.value)"></div>
+        <div class="field"><label>持有年限 <span id="lbl-term">5年</span></label>
+          <input type="range" min="1" max="10" step="1" value="5" oninput="s('term',this.value)"></div>
+      </div>
+
+      <div class="card">
+        <p class="stl">持有成本</p>
+        <div class="field"><label>物业费 / 月 <span id="lbl-condo">$800</span></label>
+          <input type="range" min="300" max="1500" step="25" value="800" oninput="s('condo',this.value)"></div>
+        <div class="field"><label>地税 / 年 <span id="lbl-tax">$4,000</span></label>
+          <input type="range" min="2000" max="8000" step="100" value="4000" oninput="s('tax',this.value)"></div>
+        <div class="field"><label>购房杂费（律师 / HST 等） <span id="lbl-closing">$10,000</span></label>
+          <input type="range" min="0" max="60000" step="1000" value="10000" oninput="s('closing',this.value)"></div>
+      </div>
+
+      <div class="card">
+        <p class="stl">收入 · 退出 · 涨幅</p>
+        <div class="field"><label>月租金收入（0 = 自住） <span id="lbl-rent">$2,600</span></label>
+          <input type="range" min="0" max="5000" step="50" value="2600" oninput="s('rent',this.value)"></div>
+        <div class="field"><label>房价年涨幅 <span id="lbl-growth">5.0%</span></label>
+          <input type="range" min="-5" max="15" step="0.5" value="5" oninput="s('growth',this.value)"></div>
+        <div class="field"><label>卖出经纪费率 <span id="lbl-agent">4.0%</span></label>
+          <input type="range" min="0" max="6" step="0.5" value="4" oninput="s('agent',this.value)"></div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="btn-sell" onclick="setExit('sell')">期末卖出</button>
+          <button class="toggle-btn" id="btn-hold" onclick="setExit('hold')">期末持有</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="stl">租房对比参数</p>
+        <div class="field"><label>租房月租金 <span id="lbl-rrent">$2,800</span></label>
+          <input type="range" min="500" max="5000" step="50" value="2800" oninput="s('rrent',this.value)"></div>
+        <div class="field"><label>投资年化收益率 <span id="lbl-irr">8.0%</span></label>
+          <input type="range" min="1" max="15" step="0.5" value="8" oninput="s('irr',this.value)"></div>
+        <p class="note">租房方案：首付全额投入，每月买房比租房多花的差额也追加投入，按年化复利计算期末组合价值，再扣租金即为净盈亏。</p>
+      </div>
+    </div>
+
+    <!-- ═══ RIGHT ═══ -->
+    <div>
+      <div id="buy-result" class="result-box"></div>
+
+      <div class="card">
+        <p class="stl">月现金流（买房）</p>
+        <div class="sr"><span class="lbl">租金收入</span><span class="val pos" id="r-income"></span></div>
+        <div class="sr"><span class="lbl">月供</span><span class="val neg" id="r-mp"></span></div>
+        <div class="sr"><span class="lbl">物业费</span><span class="val neg" id="r-condo-out"></span></div>
+        <div class="sr"><span class="lbl">地税 / 月</span><span class="val neg" id="r-tax-out"></span></div>
+        <hr class="divider">
+        <div class="sr tot"><span class="lbl">月净现金流</span><span class="val" id="r-cf"></span></div>
+        <div class="cf-bar">
+          <div class="cf-track"><div class="cf-fill" id="cf-fill"></div></div>
+          <span id="cf-label" style="font-size:11px;color:var(--text2);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="stl">买房期末拆解</p>
+        <div class="sr"><span class="lbl">购房杂费</span><span class="val neg" id="b-closing"></span></div>
+        <div class="sr"><span class="lbl">利息总计</span><span class="val neg" id="b-interest"></span></div>
+        <div class="sr"><span class="lbl">物业费总计</span><span class="val neg" id="b-condo"></span></div>
+        <div class="sr"><span class="lbl">地税总计</span><span class="val neg" id="b-tax-tot"></span></div>
+        <div class="sr"><span class="lbl" id="b-sell-lbl">卖出费用</span><span class="val neg" id="b-sell"></span></div>
+        <div class="sr"><span class="lbl">租金收入</span><span class="val pos" id="b-rent-in"></span></div>
+        <hr class="divider">
+        <div class="sr tot"><span class="lbl">净持有成本</span><span class="val" id="b-net"></span></div>
+      </div>
+
+      <div class="card">
+        <p class="stl">买房期末快照</p>
+        <div class="mini-grid">
+          <div class="mini"><p class="ml">期末房价</p><p class="mv" id="s-hv"></p></div>
+          <div class="mini"><p class="ml">剩余贷款</p><p class="mv neg" id="s-bal"></p></div>
+          <div class="mini"><p class="ml">已还本金</p><p class="mv pos" id="s-prin"></p></div>
+          <div class="mini"><p class="ml">净资产</p><p class="mv" id="s-eq"></p></div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div id="rent-result" class="result-box"></div>
+
+      <div class="card">
+        <p class="stl">租房期末拆解</p>
+        <div class="sr"><span class="lbl">初始投入（首付，进入组合）</span><span class="val" id="rr-init"></span></div>
+        <div class="sr"><span class="lbl">月差额追加投入（累计）</span><span class="val" id="rr-extra"></span></div>
+        <div class="sr"><span class="lbl">投资复利收益</span><span class="val pos" id="rr-gain"></span></div>
+        <hr class="divider">
+        <div class="sr"><span class="lbl">投资组合总值</span><span class="val pos" id="rr-portfolio"></span></div>
+        <div class="sr"><span class="lbl">累计租金支出</span><span class="val neg" id="rr-rent"></span></div>
+        <hr class="divider">
+        <div class="sr tot"><span class="lbl">净盈亏（组合 − 租金）</span><span class="val" id="rr-final"></span></div>
+        <p class="note" id="rr-note"></p>
+      </div>
+
+      <hr class="sep">
+
+      <div class="compare-banner" id="compare-banner">
+        <div class="cb-side">
+          <p class="cl" style="color:var(--blue);">买房净盈亏</p>
+          <p class="cv" id="cmp-buy"></p>
+          <p class="cs">扣首付 + 杂费 + 持有成本</p>
+        </div>
+        <div class="cb-mid">
+          <p class="cml">差距</p>
+          <p class="cmv" id="cmp-gap"></p>
+          <p class="cmw" id="cmp-winner"></p>
+        </div>
+        <div class="cb-side">
+          <p class="cl" style="color:var(--green);">租房净盈亏</p>
+          <p class="cv" id="cmp-rent"></p>
+          <p class="cs">组合总值 − 累计租金</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>仅供参考，不构成投资建议 · 数字均为税前估算</footer>
+</div>
+
+<script>
+function fmtP(n){return'$'+Math.abs(Math.round(n)).toLocaleString('en-CA');}
+function fmt(n){return(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString('en-CA');}
+
+const ST={
+  price:500000,down:20,rate:4.5,amort:25,term:5,
+  condo:800,tax:4000,closing:10000,
+  rent:2600,growth:5.0,agent:4.0,exit:'sell',
+  rrent:2800,irr:8.0
+};
+
+const LBLFMT={
+  price:v=>fmtP(v), down:v=>v+'%', rate:v=>parseFloat(v).toFixed(1)+'%',
+  amort:v=>v+'年', term:v=>v+'年', condo:v=>fmtP(v), tax:v=>fmtP(v),
+  closing:v=>fmtP(v), rent:v=>v==0?'自住（$0）':fmtP(v),
+  growth:v=>parseFloat(v).toFixed(1)+'%', agent:v=>parseFloat(v).toFixed(1)+'%',
+  rrent:v=>fmtP(v), irr:v=>parseFloat(v).toFixed(1)+'%'
+};
+
+function s(key,val){
+  ST[key]=parseFloat(val);
+  const el=document.getElementById('lbl-'+key);
+  if(el&&LBLFMT[key]) el.textContent=LBLFMT[key](val);
+  calc();
+}
+
+function setExit(mode){
+  ST.exit=mode;
+  document.getElementById('btn-sell').classList.toggle('active',mode==='sell');
+  document.getElementById('btn-hold').classList.toggle('active',mode==='hold');
+  calc();
+}
+
+function calc(){
+  const {price,down,rate,amort,term,condo,tax,closing,rent,growth,agent,exit,rrent,irr}=ST;
+  const downAmt=Math.round(price*down/100);
+  const loan=price-downAmt;
+  const mRate=rate/100/12;
+  const nTerm=term*12;
+  const nAmort=amort*12;
+
+  const mp=loan>0&&mRate>0?loan*mRate/(1-Math.pow(1+mRate,-nAmort)):loan/nAmort;
+  const mpR=Math.round(mp);
+
+  let bal=loan,totI=0,totP=0;
+  for(let i=0;i<nTerm;i++){
+    const interest=bal*mRate;
+    const principal=mp-interest;
+    totI+=interest;
+    totP+=Math.min(principal,bal);
+    bal=Math.max(bal-principal,0);
+  }
+  const finalBal=Math.round(bal);
+  totI=Math.round(totI); totP=Math.round(totP);
+
+  const houseVal=Math.round(price*Math.pow(1+growth/100,term));
+  const agentFee=exit==='sell'?Math.round(houseVal*agent/100):0;
+  const sellMisc=exit==='sell'?1500:0;
+  const totalSellCost=agentFee+sellMisc;
+  const totalRentIn=rent*nTerm;
+  const totalCondo=condo*nTerm;
+  const totalTaxTot=Math.round(tax/12*nTerm);
+  const burnHolding=closing+totI+totalCondo+totalTaxTot;
+  const netHolding=burnHolding-totalRentIn;
+  const mCF=Math.round(rent-mp-condo-tax/12);
+
+  let buyPnl;
+  if(exit==='sell'){
+    buyPnl=Math.round((houseVal-totalSellCost-finalBal)-downAmt-netHolding);
+  } else {
+    buyPnl=Math.round((houseVal-finalBal)-downAmt-netHolding);
+  }
+
+  // 租房方案
+  const mIRR=Math.pow(1+irr/100,1/12)-1;
+  let portfolio=downAmt,totalExtra=0,totalGain=0;
+  const buyMonthlyOut=mp+condo+tax/12;
+  for(let i=0;i<nTerm;i++){
+    const before=portfolio;
+    portfolio*=(1+mIRR);
+    totalGain+=portfolio-before;
+    const saving=buyMonthlyOut-rrent;
+    if(saving>0){portfolio+=saving;totalExtra+=saving;}
+  }
+  const rentPortfolio=Math.round(portfolio);
+  totalGain=Math.round(totalGain);
+  const totalRrentOut=rrent*nTerm;
+  const rentNetPnl=Math.round(rentPortfolio-totalRrentOut);
+
+  // ── 买房结果框 ──
+  const bc=buyPnl>=0?'var(--green)':'var(--red)';
+  const bbg=buyPnl>=0?'var(--green-bg)':'var(--red-bg)';
+  const bbr=buyPnl>=0?'var(--green-border)':'var(--red-border)';
+  const bdc=buyPnl>=0?'var(--green-dark)':'var(--red-dark)';
+  document.getElementById('buy-result').style.cssText=`background:${bbg};border:0.5px solid ${bbr};border-radius:var(--radius);padding:14px 16px;text-align:center;margin-bottom:12px;`;
+  document.getElementById('buy-result').innerHTML=`
+    <p class="rl" style="color:${bc};">买房 · ${exit==='sell'?'卖出':'持有'} · ${term}年 · 涨${growth.toFixed(1)}%/年</p>
+    <p class="rv" style="color:${bdc};">${fmt(buyPnl)}</p>
+    <p class="rs" style="color:${bc};">${buyPnl>=0?'盈利':'亏损'} · 期末房价 ${fmtP(houseVal)}</p>`;
+
+  // 月现金流
+  document.getElementById('r-income').textContent=rent>0?'+'+fmtP(rent):'$0（自住）';
+  document.getElementById('r-mp').textContent='−'+fmtP(mpR);
+  document.getElementById('r-condo-out').textContent='−'+fmtP(condo);
+  document.getElementById('r-tax-out').textContent='−'+fmtP(Math.round(tax/12));
+  const cfEl=document.getElementById('r-cf');
+  cfEl.textContent=fmt(mCF)+'/月';
+  cfEl.style.color=mCF>=0?'var(--green)':'var(--red)';
+  const fill=document.getElementById('cf-fill');
+  fill.style.width=Math.min(Math.abs(mCF)/Math.max(Math.abs(mCF),1500)*100,100)+'%';
+  fill.style.background=mCF>=0?'var(--green)':'var(--red)';
+  document.getElementById('cf-label').textContent=mCF>=0?'正现金流':'月均倒贴';
+
+  // 买房拆解
+  document.getElementById('b-closing').textContent='−'+fmtP(closing);
+  document.getElementById('b-interest').textContent='−'+fmtP(totI);
+  document.getElementById('b-condo').textContent='−'+fmtP(totalCondo);
+  document.getElementById('b-tax-tot').textContent='−'+fmtP(totalTaxTot);
+  document.getElementById('b-sell-lbl').textContent=exit==='sell'?'卖出费用（经纪+律师）':'卖出费用';
+  document.getElementById('b-sell').textContent=exit==='sell'?'−'+fmtP(totalSellCost):'$0（不卖）';
+  document.getElementById('b-rent-in').textContent=totalRentIn>0?'+'+fmtP(totalRentIn):'$0（自住）';
+  const netTot=netHolding+(exit==='sell'?totalSellCost:0);
+  const netEl=document.getElementById('b-net');
+  netEl.textContent=fmt(netTot);
+  netEl.style.color=netTot<=0?'var(--green)':'var(--red)';
+
+  // 快照
+  document.getElementById('s-hv').textContent=fmtP(houseVal);
+  document.getElementById('s-bal').textContent=fmtP(finalBal);
+  document.getElementById('s-prin').textContent='+'+fmtP(totP);
+  const eqEl=document.getElementById('s-eq');
+  eqEl.textContent=fmtP(houseVal-finalBal);
+  eqEl.style.color=houseVal-finalBal>=0?'var(--green)':'var(--red)';
+
+  // ── 租房结果框 ──
+  const rc=rentNetPnl>=0?'var(--green)':'var(--red)';
+  const rbg=rentNetPnl>=0?'var(--green-bg)':'var(--red-bg)';
+  const rbr=rentNetPnl>=0?'var(--green-border)':'var(--red-border)';
+  const rdc=rentNetPnl>=0?'var(--green-dark)':'var(--red-dark)';
+  document.getElementById('rent-result').style.cssText=`background:${rbg};border:0.5px solid ${rbr};border-radius:var(--radius);padding:14px 16px;text-align:center;margin-bottom:12px;`;
+  document.getElementById('rent-result').innerHTML=`
+    <p class="rl" style="color:${rc};">租房 · ${irr.toFixed(1)}%年化 · ${term}年</p>
+    <p class="rv" style="color:${rdc};">${fmt(rentNetPnl)}</p>
+    <p class="rs" style="color:${rc};">${rentNetPnl>=0?'盈利':'亏损'} · 组合 ${fmtP(rentPortfolio)} − 租金 ${fmtP(totalRrentOut)}</p>`;
+
+  // 租房拆解
+  document.getElementById('rr-init').textContent=fmtP(downAmt);
+  const extraEl=document.getElementById('rr-extra');
+  if(totalExtra>0){
+    extraEl.textContent='+'+fmtP(Math.round(totalExtra));
+    extraEl.style.color='var(--green)';
+  } else {
+    extraEl.textContent='$0（租房月支出更高）';
+    extraEl.style.color='var(--text2)';
+  }
+  document.getElementById('rr-gain').textContent='+'+fmtP(totalGain);
+  document.getElementById('rr-portfolio').textContent=fmtP(rentPortfolio);
+  document.getElementById('rr-rent').textContent='−'+fmtP(totalRrentOut);
+  const rrFinal=document.getElementById('rr-final');
+  rrFinal.textContent=fmt(rentNetPnl);
+  rrFinal.style.color=rentNetPnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('rr-note').textContent=totalExtra>0
+    ?`买房每月支出比租房多 ${fmtP(Math.round(totalExtra/nTerm))}，差额每月追加投入，连同首付 ${fmtP(downAmt)} 按 ${irr.toFixed(1)}% 复利增长。`
+    :`租房月租（${fmtP(rrent)}）≥ 买房月支出（${fmtP(mpR+condo+Math.round(tax/12))}），无差额可追加，仅首付 ${fmtP(downAmt)} 按 ${irr.toFixed(1)}% 复利增长。`;
+
+  // ── 对比横幅 ──
+  const diff=rentNetPnl-buyPnl;
+  const rentWins=diff>0;
+  const cmpBuy=document.getElementById('cmp-buy');
+  cmpBuy.textContent=fmt(buyPnl);
+  cmpBuy.style.color=buyPnl>=0?'var(--blue)':'var(--red)';
+  const cmpRent=document.getElementById('cmp-rent');
+  cmpRent.textContent=fmt(rentNetPnl);
+  cmpRent.style.color=rentNetPnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('cmp-gap').textContent=fmtP(Math.abs(diff));
+  document.getElementById('cmp-gap').style.color=rentWins?'var(--green)':'var(--blue)';
+  const winner=document.getElementById('cmp-winner');
+  winner.textContent=rentWins?'租房领先':'买房领先';
+  winner.style.color=rentWins?'var(--green)':'var(--blue)';
+  const banner=document.getElementById('compare-banner');
+  banner.style.background=rentWins?'var(--green-bg)':'var(--blue-bg)';
+  banner.style.borderColor=rentWins?'var(--green-border)':'var(--blue-border)';
+}
+
+calc();
+</script>
+</body>
+</html>
